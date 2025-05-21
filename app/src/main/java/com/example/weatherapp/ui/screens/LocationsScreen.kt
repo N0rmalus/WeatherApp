@@ -1,6 +1,7 @@
 // Updated LocationsScreen.kt with error alert for invalid coordinates
 package com.example.weatherapp.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,6 +22,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -29,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.compose.backgroundDark
+import com.example.weatherapp.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.example.weatherapp.model.WeatherInfo
@@ -36,9 +39,11 @@ import com.example.weatherapp.model.WeatherInfo
 @Composable
 fun LocationsScreen(
     navController: NavHostController,
-    locationsViewModel: LocationsViewModel
+    locationsViewModel: LocationsViewModel,
+    settingsViewModel: SettingsViewModel
 ) {
     var showErrorAlert by remember { mutableStateOf(false) }
+    val isMetric by settingsViewModel.isMetric.collectAsState(initial = true)
 
     SearchBar(
         locationsViewModel = locationsViewModel,
@@ -102,9 +107,28 @@ fun LocationsScreen(
                                             text = location.observableWeatherInfo?.name ?: "Unknown",
                                             style = MaterialTheme.typography.headlineLarge
                                         )
+//                                        IconButton(
+//                                            modifier = Modifier
+//                                                .clip(MaterialTheme.shapes.medium)
+//                                                .background(Color.Gray.copy(alpha = 0.4f))
+//                                                .padding(2.dp),
+//                                            onClick = {
+//                                                navController.navigate("forecast/${location.latitude}/${location.longitude}")
+//                                            }
+//                                        ) {
+//                                            Icon(
+//                                                modifier = Modifier.size(25.dp),
+//                                                imageVector = Icons.Default.LocationOn,
+//                                                contentDescription = "View Forecast",
+//                                            )
+//                                        }
+                                        Text(
+                                            text = "${location.latitude}, ${location.longitude}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Color.Gray
+                                        )
                                         IconButton(
                                             modifier = Modifier
-                                                // rounded corners
                                                 .clip(MaterialTheme.shapes.medium)
                                                 .background(Color.Gray.copy(alpha = 0.4f))
                                                 .padding(2.dp),
@@ -123,22 +147,94 @@ fun LocationsScreen(
                                         thickness = 1.dp,
                                         color = Color.Black.copy(alpha = 0.2f)
                                     )
-                                    Text(
+                                    Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(bottom = 8.dp)
-                                            .size(30.dp),
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.titleLarge,
-                                        text = "${location.observableWeatherInfo?.main?.temp?.toInt() ?: "N/A"}°C",
-                                    )
-                                    Text(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(bottom = 8.dp)
-                                            .size(20.dp),
-                                        text = "${location.observableWeatherInfo?.weather?.firstOrNull()?.main ?: "Unknown"}",
-                                    )
+                                            .padding(top = 8.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            // Temperature and Condition
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(40.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = if (isMetric) {
+                                                        "${location.observableWeatherInfo?.main?.temp?.toInt() ?: "N/A"}°C"
+                                                    } else {
+                                                        "${((location.observableWeatherInfo?.main?.temp ?: 0.0) * 9 / 5 + 32).toInt()}°F"
+                                                    },
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onBackground
+                                                )
+                                            }
+                                            Text(
+                                                text = location.observableWeatherInfo?.weather?.firstOrNull()?.main ?: "Unknown",
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                                            )
+                                        }
+
+                                        // wind speed
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(40.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Image(
+                                                    painter = painterResource(id = R.drawable.round_air_24),
+                                                    contentDescription = "Wind Speed",
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
+                                                        MaterialTheme.colorScheme.onBackground
+                                                    )
+                                                )
+                                            }
+                                            Text(
+                                                text = if (isMetric) {
+                                                    "${location.observableWeatherInfo?.wind?.speed?.toInt() ?: "N/A"} m/s"
+                                                } else {
+                                                    "${((location.observableWeatherInfo?.wind?.speed ?: 0.0) * 2.23694).toInt()} mph"
+                                                },
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                                            )
+                                        }
+
+                                        // humidity
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(40.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Image(
+                                                    painter = painterResource(id = R.drawable.rounded_humidity_percentage_24),
+                                                    contentDescription = "Wind Speed",
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
+                                                        MaterialTheme.colorScheme.onBackground
+                                                    )
+                                                )
+                                            }
+                                            Text(
+                                                text = "${location.observableWeatherInfo?.main?.humidity ?: "N/A"}%",
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -275,7 +371,7 @@ fun ErrorAlert(
                     modifier = Modifier
                         .padding(10.dp),
                     text = "Invalid coordinates",
-                    style = MaterialTheme.typography.titleLarge
+                    style = MaterialTheme.typography.titleLarge,
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 Button(
@@ -286,7 +382,7 @@ fun ErrorAlert(
                 ) {
                     Text(
                         text = "Dismiss",
-                        color = MaterialTheme.colorScheme.onBackground
+                        color = MaterialTheme.colorScheme.inversePrimary,
                     )
                 }
             }

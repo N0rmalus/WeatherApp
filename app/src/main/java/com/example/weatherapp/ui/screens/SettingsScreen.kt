@@ -1,175 +1,207 @@
 package com.example.weatherapp.ui.screens
 
 import android.content.Context
-import android.content.SharedPreferences
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.weatherapp.ui.theme.WeatherAppTheme
-
-private const val PREFS_NAME = "user_preferences"
-private const val DARK_MODE_KEY = "dark_mode"
+import com.example.weatherapp.ui.theme.ThemeViewModel
 
 @Composable
-fun SettingsScreen(navController: NavHostController) {
-    val context = LocalContext.current
-    val sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+fun SettingsScreen(
+    navController: NavHostController,
+    themeViewModel: ThemeViewModel,
+    settingsViewModel: SettingsViewModel
+) {
+    val themePreference by themeViewModel.themePreference.collectAsState()
+    val isMetric by settingsViewModel.isMetric.collectAsState(initial = true)
 
-    // Load the saved preference
-    val darkModeEnabled = remember { mutableStateOf(sharedPreferences.getBoolean(DARK_MODE_KEY, false)) }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Settings",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
 
-    WeatherAppTheme(darkTheme = darkModeEnabled.value) {
-        LazyColumn(
+        ThemeSelection(
+            themeViewModel = themeViewModel,
+            themePreference = themePreference
+        )
+
+        // Measurement System Section
+        MeasurementSystemSelection(
+            settingsViewModel = settingsViewModel,
+            isMetric = isMetric
+        )
+
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 8.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            thickness = 1.dp
+        )
+
+        // About Section
+        AboutSection()
+
+    }
+}
+
+@Composable
+fun ThemeSelection(
+    themeViewModel: ThemeViewModel,
+    themePreference: String,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(16.dp)
-
         ) {
-            item {
+            Text(
+                text = "Theme",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            RadioButtonGroup(
+                options = listOf("System", "Light", "Dark"),
+                selectedOption = themePreference,
+                onOptionSelected = { theme ->
+                    themeViewModel.updateThemePreference(theme.lowercase())
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun MeasurementSystemSelection(
+    settingsViewModel: SettingsViewModel,
+    isMetric: Boolean
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "Measurement System",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
                 Text(
-                    text = "Settings",
-                    style = MaterialTheme.typography.headlineLarge
+                    text = "Imperial",
+                    style = MaterialTheme.typography.bodyLarge,
                 )
-                HorizontalDivider(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    thickness = 2.dp
+                Switch(
+                    checked = isMetric,
+                    onCheckedChange = { isChecked ->
+                        settingsViewModel.setMeasurementSystem(isChecked)
+                    }
                 )
-            }
-            item {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Dark Mode")
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Switch(
-                        checked = darkModeEnabled.value,
-                        onCheckedChange = { isChecked ->
-                            darkModeEnabled.value = isChecked
-                            saveDarkModePreference(sharedPreferences, isChecked)
-                        }
-                    )
-                }
-            }
-            item {
-                var expanded by remember { mutableStateOf(false) }
-                var selectedLanguage by remember { mutableStateOf("English") }
-
-                Spacer(modifier = Modifier.height(8.dp))
-                Column {
-                    Text(
-                        text = "Language",
-                        style = MaterialTheme.typography.headlineSmall,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.5f)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) {
-                                expanded = true
-                            }
-                            // border radius
-                            .border(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                shape = MaterialTheme.shapes.small
-                            )
-
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = selectedLanguage,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(8.dp)
-                            )
-                            Icon(
-                                imageVector = Icons.Filled.ArrowDropDown,
-                                contentDescription = "Dropdown",
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
-                    }
-
-                }
-            }
-            item {
-                // buttons to save or reset settings
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Button(
-                        onClick = {
-                            // Save the settings
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondary
-                        ),
-                        modifier = Modifier.padding(top = 16.dp)
-                    ) {
-                        Text("Save")
-                    }
-                    Button(
-                        onClick = {
-                            // Reset the settings
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondary
-                        ),
-                        modifier = Modifier.padding(top = 16.dp)
-                    ) {
-                        Text("Reset")
-                    }
-                }
-            }
-            item {
-                // Column for the developer information at the bottom
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Developed by: Rokas Kartenis",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Version: 1.0",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "© 2025 Weather App",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
+                Text(
+                    text = "Metric",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
             }
         }
     }
 }
 
-private fun saveDarkModePreference(sharedPreferences: SharedPreferences, isDarkMode: Boolean) {
-    sharedPreferences.edit().putBoolean(DARK_MODE_KEY, isDarkMode).apply()
+@Composable
+fun RadioButtonGroup(
+    options: List<String>,
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit
+) {
+    options.forEach { option ->
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+        ) {
+            RadioButton(
+                selected = selectedOption == option.lowercase(),
+                onClick = { onOptionSelected(option) }
+            )
+            Text(
+                text = option,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun AboutSection() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "WeatherApp",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp)
+                    .align(Alignment.CenterHorizontally)
+
+            )
+            Text(
+                text = "Version: 1.0.0",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+            Text(
+                text = "Developed by: Rokas Kartenis",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }

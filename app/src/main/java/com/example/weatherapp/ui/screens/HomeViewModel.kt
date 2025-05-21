@@ -42,11 +42,6 @@ class HomeViewModel(context: Context) : ViewModel() {
                 while (true) { // Fetch location periodically
                     fetchLocationAndWeather()
                     delay(2 * 60 * 1000)
-//                    val currentTime = System.currentTimeMillis()
-//                    if (currentTime - lastFetchTime >= 2 * 60 * 1000) { // Fetch every 2 minutes
-//                        lastFetchTime = currentTime
-//                    }
-                     // Check every 2 minutes
                 }
             }
         }

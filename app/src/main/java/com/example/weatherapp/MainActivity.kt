@@ -1,11 +1,13 @@
 package com.example.weatherapp
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -28,13 +30,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.weatherapp.ui.navbar.BottomNavItem
+import com.example.weatherapp.ui.theme.ThemeViewModel
+import com.example.weatherapp.ui.theme.ThemeViewModelFactory
+import kotlin.getValue
+import androidx.compose.runtime.collectAsState
 
 class MainActivity : ComponentActivity() {
+    internal val themeViewModel: ThemeViewModel by viewModels {
+        ThemeViewModelFactory(applicationContext)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestPermissions()
+
         setContent {
-            WeatherAppTheme {
+            val themePreference by themeViewModel.themePreference.collectAsState()
+            WeatherAppTheme(themePreference = themePreference) {
                 val navController = rememberNavController()
                 BottomBarNavigationSetup(navController, this)
             }
@@ -59,10 +71,12 @@ class MainActivity : ComponentActivity() {
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun BottomBarNavigationSetup(navController: NavHostController, activity: ComponentActivity) {
+    val themeViewModel: ThemeViewModel = (activity as MainActivity).themeViewModel
+
     Scaffold(
         bottomBar = { BottomBar(navController) }
     ) {
-        BottomBarNavGraph(navController, activity)
+        BottomBarNavGraph(navController, activity, themeViewModel)
     }
 }
 

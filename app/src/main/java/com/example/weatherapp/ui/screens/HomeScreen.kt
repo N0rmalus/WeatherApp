@@ -15,6 +15,8 @@ import androidx.compose.material.icons.rounded.KeyboardArrowLeft
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,8 +35,11 @@ import com.example.weatherapp.model.WeatherInfo
 @Composable
 fun HomeScreen(
     navController: NavHostController,
-    homeViewModel: HomeViewModel
+    homeViewModel: HomeViewModel,
+    settingsViewModel: SettingsViewModel,
 ) {
+    val isMetric by settingsViewModel.isMetric.collectAsState(initial = true)
+
     @Suppress("UnnecessaryVariable")
     LaunchedEffect(Unit) {
         // Ensure the periodic fetching has already started
@@ -43,7 +48,10 @@ fun HomeScreen(
 
     when (val state = homeViewModel.homeUiState) {
         is HomeUiState.Loading -> LoadingScreen()
-        is HomeUiState.Success -> ResultScreen(state.data)
+        is HomeUiState.Success -> ResultScreen(
+            data = state.data,
+            isMetric = isMetric,
+        )
         is HomeUiState.Error -> ErrorScreen()
     }
 }
@@ -100,7 +108,10 @@ fun ErrorScreen(
 }
 
 @Composable
-fun ResultScreen(data: WeatherInfo) {
+fun ResultScreen(
+    data: WeatherInfo,
+    isMetric: Boolean,
+) {
     LazyColumn(
         modifier = Modifier
             .height(790.dp),
@@ -125,7 +136,11 @@ fun ResultScreen(data: WeatherInfo) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text( // Temperature Data
-                    text = "${data.main?.temp?.toInt() ?: "N/A"}°C", // Display the temperature or a default value
+                    text = if (isMetric) {
+                        "${data.main?.temp?.toInt() ?: "N/A"}°C"
+                    } else {
+                        "${((data.main?.temp ?: 0.0) * 9 / 5 + 32).toInt()}°F"
+                    },
                     style = MaterialTheme.typography.displayLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
@@ -146,8 +161,13 @@ fun ResultScreen(data: WeatherInfo) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "${data.main?.temp_max?.toInt() }° / ${data.main?.temp_min?.toInt()}° " +
-                            "Feels like ${data.main?.feels_like?.toInt() ?: "N/A"}°",
+                    text = if (isMetric) {
+                        "${data.main?.temp_max?.toInt()}°C / ${data.main?.temp_min?.toInt()}°C " +
+                        "Feels like ${data.main?.feels_like?.toInt() ?: "N/A"}°C"
+                    } else {
+                        "${((data.main?.temp_max ?: 0.0) * 9 / 5 + 32).toInt()}°F / ${((data.main?.temp_min ?: 0.0) * 9 / 5 + 32).toInt()}°F " +
+                        "Feels like ${((data.main?.feels_like ?: 0.0) * 9 / 5 + 32).toInt() ?: "N/A"}°F"
+                    },
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold,
@@ -156,13 +176,19 @@ fun ResultScreen(data: WeatherInfo) {
             }
         }
         item {
-            AdditionalContent(data)
+            AdditionalContent(
+                data = data,
+                isMetric = isMetric
+            )
         }
     }
 }
 
 @Composable
-fun AdditionalContent(data: WeatherInfo) {
+fun AdditionalContent(
+    data: WeatherInfo,
+    isMetric: Boolean,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -172,13 +198,17 @@ fun AdditionalContent(data: WeatherInfo) {
     ) {
         InfoCard(
             title = "Wind Speed",
-            description = "${data.wind?.speed ?: "N/A"} m/s", // Display the wind speed or a default value
-            imageResId = R.drawable.round_air_24 // replace with your image resource
+            description = if (isMetric) {
+                "${data.wind?.speed?.toInt() ?: "N/A"} m/s"
+            } else {
+                "${((data.wind?.speed ?: 0.0) * 2.23694).toInt()} mph"
+            },
+            imageResId = R.drawable.round_air_24
         )
         InfoCard(
             title = "Humidity",
-            description = "${data.main?.humidity ?: "N/A"} %", // Display the humidity or a default value
-            imageResId = R.drawable.rounded_humidity_percentage_24 // replace with your image resource
+            description = "${data.main?.humidity ?: "N/A"} %",
+            imageResId = R.drawable.rounded_humidity_percentage_24
         )
     }
 }
